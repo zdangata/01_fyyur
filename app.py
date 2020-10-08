@@ -50,7 +50,7 @@ class Venue(db.Model):
     website = db.Column(db.String(500))
     seeking_talent = db.Column(db.Boolean(), default=False)
     seeking_description = db.Column(db.String(500))
-    show_id = db.relationship('Show', backref='Venue', lazy=True)
+    show_id = db.relationship('Show', backref='Venue', lazy='dynamic')
 
     def __repr__(self):
       return f'<Venue {self.id} {self.name} {self.city} {self.state} {self.address} {self.phone} {self.genres} {self.image_link} {self.facebook_link} {self.website} {self.seeking_talent} {self.seeking_description} {self.show_id}>'
@@ -71,7 +71,7 @@ class Artist(db.Model):
     website = db.Column(db.String(500))
     seeking_venue = db.Column(db.Boolean, default=False)
     seeking_description = db.Column(db.String(500))
-    show_id = db.relationship('Show', backref='Artist', lazy=True)
+    show_id = db.relationship('Show', backref='Artist', lazy='dynamic')
 
     def __repr__(self):
       return f'<Artist {self.id} {self.name} {self.city} {self.state} {self.phone} {self.genres} {self.image_link} {self.facebook_link} {self.website} {self.seeking_venue} {self.seeking_description} {self.show_id}>'
@@ -122,48 +122,38 @@ def venues():
 
   # shows all venues in the database
   venues = Venue.query.order_by(Venue.name).all()
-
+  
   data = []
+  locations = set()
  # aborts if there are no venues in the database
   if len(venues) == 0 or venues is None:
     abort(404)
 
-  #locations = Venue.query.order_by(Venue.city).all()
-  #states = Venue.query.order_by(Venue.state).all()
-  #for loops: for i in location, we want to find out what venues are in that location.
-
-  '''num_upcoming_shows = 0
-
+  # renders each venue location to the client
   for venue in venues:
+    locations.add((venue.city, venue.state))
 
-    venue.append({
-      'id': venue.id,
-      'name': venue.name,
-      'num_upcoming_shows': venue.num_upcoming_shows
-    })'''
+  # renders each venue from the database under its respective location
+  for location in locations:
+    data.append({
+      "city": location[0],
+      "state": location[1],
+      "venues": []
+    })
 
-  '''data=[{
-    "city": "San Francisco",
-    "state": "CA",
-    "venues": [{
-      "id": 1,
-      "name": "The Musical Hop",
-      "num_upcoming_shows": 0,
-    }, {
-      "id": 3,
-      "name": "Park Square Live Music & Coffee",
-      "num_upcoming_shows": 1,
-    }]
-  }, {
-    "city": "New York",
-    "state": "NY",
-    "venues": [{
-      "id": 2,
-      "name": "The Dueling Pianos Bar",
-      "num_upcoming_shows": 0,
-    }]
-  }]'''
-  return render_template('pages/venues.html', areas=venues)
+  # assigns each venue to its corresponding namr and id and then aggregates the num of upcoming shows
+  for venue in venues:
+    num_upcoming_shows = 0
+    for item in data:
+      upcoming_shows = venue.show_id.filter(Show.start_time > datetime.now()).all()
+      if item['city'] == venue.city and item['state'] == venue.state:
+        item['venues'].append({
+          "id": venue.id,
+          "name": venue.name,
+          "num_upcoming shows": num_upcoming_shows
+        })
+
+  return render_template('pages/venues.html', areas=data)
 
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
@@ -184,7 +174,26 @@ def search_venues():
 def show_venue(venue_id):
   # shows the venue page with the given venue_id
   # TODO: replace with real venue data from the venues table, using venue_id
-  data1={
+  
+  # a filtered query which gets the details for the selected venue
+  data = Venue.query.filter(Venue.id == venue_id).one_or_none()
+
+  #setting variables for past and upcoming shows
+  past_shows = Venue.show_id.filter(Show.start_time < datetime.now()).all()
+  upcoming_shows = Venue.show_id.filter(Show.start_time < datetime.now()).all()
+  
+  
+  '''data = [{
+    "id": selected_venue.id,
+    "address": selected_venue.address,
+    "phone": selected_venue.phone,
+    "website": selected_venue.website,
+    "Facebook Link": selected_venue.facebook_link,
+    "Currently seeking talent": selected_venue.seeking_talent,
+    "Image": selected_venue.image_link
+  }]'''
+
+  '''data1={
     "id": 1,
     "name": "The Musical Hop",
     "genres": ["Jazz", "Reggae", "Swing", "Classical", "Folk"],
@@ -261,7 +270,7 @@ def show_venue(venue_id):
     "past_shows_count": 1,
     "upcoming_shows_count": 1,
   }
-  data = list(filter(lambda d: d['id'] == venue_id, [data1, data2, data3]))[0]
+  data = list(filter(lambda d: d['id'] == venue_id, [data1, data2, data3]))[0]'''
   return render_template('pages/show_venue.html', venue=data)
 
 #  Create Venue
