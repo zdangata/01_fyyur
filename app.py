@@ -69,7 +69,7 @@ class Artist(db.Model):
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
     website = db.Column(db.String(500))
-    seeking_venue = db.Column(db.Boolean, default=False)
+    seeking_venue = db.Column(db.Boolean(), default=False)
     seeking_description = db.Column(db.String(500))
     show_id = db.relationship('Show', backref='Artist', lazy='dynamic')
 
@@ -179,8 +179,8 @@ def show_venue(venue_id):
   data = Venue.query.filter(Venue.id == venue_id).one_or_none()
 
   #setting variables for past and upcoming shows
-  past_shows = Venue.show_id.filter(Show.start_time < datetime.now()).all()
-  upcoming_shows = Venue.show_id.filter(Show.start_time < datetime.now()).all()
+  '''past_shows = data.show_id#.filter(Show.start_time < datetime.now()).all()
+  upcoming_shows = data.show_id#.filter(Show.start_time > datetime.now()).all()'''
   
   
   '''data = [{
@@ -287,19 +287,6 @@ def create_venue_submission():
   form = VenueForm()
   error = False
 
-  # sets each element from the form to a variable
-  name = request.form.get('name')
-  city = request.form.get('city')
-  state = request.form.get('state')
-  address = request.form.get('address')
-  phone = request.form.get('phone')
-  image_link = request.form.get('image_link')
-  genres = request.form.getlist('genres')
-  facebook_link = request.form.get('facebook_link')
-  website = request.form.get('website')
-  seeking_talent = request.form.get('seeking_talent')
-  seeking_description = request.form.get('seeking_description')
-
   # TODO: modify data to be the data object returned from db insertion
 
   # This try block and all other try blocks in this file are based on the code in lesson 5 part 9 from the follwing video: https://youtu.be/Zq4AbRKOQiM 
@@ -355,14 +342,15 @@ def delete_venue(venue_id):
 def artists():
   # TODO: replace with real data returned from querying the database
 
-  # shows all artists in the database
+  '''# shows all artists in the database
   data = Artist.query.order_by(Artist.id).all()
 
   # aborts if there are no artists in the database
   if len(data) == 0 or data is None:
     abort(404)
+  '''
 
-  '''data=[{
+  data=[{
     "id": 4,
     "name": "Guns N Petals",
   }, {
@@ -371,7 +359,7 @@ def artists():
   }, {
     "id": 6,
     "name": "The Wild Sax Band",
-  }]'''
+  }]
   return render_template('pages/artists.html', artists=data)
 
 @app.route('/artists/search', methods=['POST'])
@@ -534,8 +522,40 @@ def create_artist_submission():
   # called upon submitting the new artist listing form
   # TODO: insert form data as a new Venue record in the db, instead
   # TODO: modify data to be the data object returned from db insertion
+  form = ArtistForm()
+  error = False
 
-  # on successful db insert, flash success
+  # sets each element from the form to a variable
+  try:
+    name = request.form.get('name')
+    city = request.form.get('city')
+    state = request.form.get('state')
+    phone = request.form.get('phone')
+    website = request.form.get('website')
+    genres = request.form.getlist('genres')
+    image_link = request.form.get('image_link')
+    facebook_link = request.form.get('facebook_link')
+    seeking_talent = request.form.get('seeking_talent')
+    seeking_description = request.form.get('seeking_description')
+
+    # Maps the variables above to their corresponding objects in this instance
+    artist = Artist(name=name, city=city, state=state, phone=phone, website=website, genres=genres, image_link=image_link, facebook_link=facebook_link, seeking_talent=seeking_talent, seeking_description=seeking_description)
+
+    # Adds and commits the objects above to the artist data model
+    db.session.add(artist)
+    db.session.commit()
+
+  except:
+    db.session.rollback()
+    error = True
+    abort(400)
+    flash('An error occurred. Your artist could not be listed.')
+    print(sys.exc_info())
+
+  finally:
+    db.session.close()  
+    # on successful db insert, flash success
+    
   flash('Artist ' + request.form['name'] + ' was successfully listed!')
   # TODO: on unsuccessful db insert, flash an error instead.
   # e.g., flash('An error occurred. Artist ' + data.name + ' could not be listed.')
