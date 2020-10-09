@@ -45,7 +45,7 @@ class Venue(db.Model):
     address = db.Column(db.String(120))
     phone = db.Column(db.String(120))
     genres = db.Column(db.ARRAY(db.String))
-    image_link = db.Column(db.String(500))
+    image_link = db.Column(db.String(1000))
     facebook_link = db.Column(db.String(120))
     website = db.Column(db.String(500))
     seeking_talent = db.Column(db.Boolean(), default=False)
@@ -66,7 +66,7 @@ class Artist(db.Model):
     state = db.Column(db.String(120))
     phone = db.Column(db.String(120))
     genres = db.Column(db.ARRAY(db.String))
-    image_link = db.Column(db.String(500))
+    image_link = db.Column(db.String(1000))
     facebook_link = db.Column(db.String(120))
     website = db.Column(db.String(500))
     seeking_venue = db.Column(db.Boolean(), default=False)
@@ -83,8 +83,8 @@ class Show(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     start_time = db.Column(db.DateTime, nullable=False)
-    venue = db.Column(db.Integer, db.ForeignKey('Venue.id'), nullable=False)
-    artist = db.Column(db.Integer, db.ForeignKey('Artist.id'), nullable=False)
+    venue_id = db.Column(db.Integer, db.ForeignKey('Venue.id'), nullable=False, autoincrement=True)
+    artist_id = db.Column(db.Integer, db.ForeignKey('Artist.id'), nullable=False, autoincrement=True)
 
     def __repr__(self):
      return f'<Show {self.id} {self.start_time} {self.venue} {self.artist}>'
@@ -295,14 +295,15 @@ def create_venue_submission():
     name = request.form.get('name')
     city = request.form.get('city')
     state = request.form.get('state')
-    address = request.form.get('address')
     phone = request.form.get('phone')
-    image_link = request.form.get('image_link')
-    genres = request.form.getlist('genres')
-    facebook_link = request.form.get('facebook_link')
+    address = request.form.get('address')
     website = request.form.get('website')
+    genres = request.form.getlist('genres')
+    image_link = request.form.get('image_link')
+    facebook_link = request.form.get('facebook_link')
     seeking_talent = request.form.get('seeking_talent')
     seeking_description = request.form.get('seeking_description')
+
     # Maps the variables above to their corresponding objects in this instance
     venue = Venue(name=name, city=city, state=state, address=address, phone=phone, image_link=image_link, genres=genres, facebook_link=facebook_link, seeking_talent=seeking_talent, seeking_description=seeking_description)
 
@@ -533,13 +534,13 @@ def create_artist_submission():
     phone = request.form.get('phone')
     website = request.form.get('website')
     genres = request.form.getlist('genres')
-    image_link = request.form.get('image_link')
+    image_link = str(request.form.get('image_link'))
+    seeking_venue= bool(request.form.get('seeking_venue'))
     facebook_link = request.form.get('facebook_link')
-    seeking_talent = request.form.get('seeking_talent')
     seeking_description = request.form.get('seeking_description')
 
     # Maps the variables above to their corresponding objects in this instance
-    artist = Artist(name=name, city=city, state=state, phone=phone, website=website, genres=genres, image_link=image_link, facebook_link=facebook_link, seeking_talent=seeking_talent, seeking_description=seeking_description)
+    artist = Artist(name=name, city=city, state=state, phone=phone, website=website, genres=genres, image_link=image_link, facebook_link=facebook_link, seeking_venue=seeking_venue, seeking_description=seeking_description)
 
     # Adds and commits the objects above to the artist data model
     db.session.add(artist)
@@ -618,6 +619,31 @@ def create_shows():
 def create_show_submission():
   # called to create new shows in the db, upon submitting new show listing form
   # TODO: insert form data as a new Show record in the db, instead
+  form = ShowForm(request.form)
+  error = False
+
+  # sets each element from the form to a variable
+  try:
+    venue_id = request.form.data.get('venue_id')
+    artist_id = request.form.data.get('artist_id')
+    start_time = request.form.data.get('start_time')
+
+    # Maps the variables above to their corresponding objects in this instance
+    show = Show(venue_id=venue_id, artist_id=artist_id, start_time=start_time)
+
+    # Adds and commits the objects above to the Show data model
+    db.session.add(show)
+    db.session.commit()
+
+  except:
+    db.session.rollback()
+    error = True
+    abort(400)
+    flash('An error occurred. Show could not be listed.')
+    print(sys.exc_info())
+  
+  finally:
+    db.session.close()  
 
   # on successful db insert, flash success
   flash('Show was successfully listed!')
