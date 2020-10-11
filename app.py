@@ -129,6 +129,7 @@ def venues():
   if len(venues) == 0 or venues is None:
     abort(404)
 
+  #I took and adapted the following loop structure from obrienmp github
   # renders each venue location to the client
   for venue in venues:
     locations.add((venue.city, venue.state))
