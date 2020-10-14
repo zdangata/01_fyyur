@@ -247,7 +247,7 @@ def create_venue_submission():
   # TODO: insert form data as a new Venue record in the db, instead
   form = VenueForm()
   error = False
-
+  
   # TODO: modify data to be the data object returned from db insertion
 
   # This try block and all other try blocks in this file are based on the code in lesson 5 part 9 from the follwing video: https://youtu.be/Zq4AbRKOQiM 
@@ -260,9 +260,9 @@ def create_venue_submission():
     address = request.form.get('address')
     website = request.form.get('website')
     genres = request.form.getlist('genres')
-    image_link = request.form.get('image_link')
+    image_link = str(request.form.get('image_link'))
     facebook_link = request.form.get('facebook_link')
-    seeking_talent = request.form.get('seeking_talent')
+    seeking_talent = bool(request.form.get('seeking_talent'))
     seeking_description = request.form.get('seeking_description')
 
     # Maps the variables above to their corresponding objects in this instance
@@ -281,13 +281,18 @@ def create_venue_submission():
 
   finally:
     db.session.close()
-  
+
   # on successful db insert, flash success
   flash('Venue ' + request.form['name'] + ' was successfully listed!')
   # TODO: on unsuccessful db insert, flash an error instead.
   # e.g., flash('An error occurred. Venue ' + data.name + ' could not be listed.')
   # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
   return render_template('pages/home.html')
+    
+  #else:
+   # flash('Venue ' + request.form['name'] + ' failed due to validation error!')
+    #return render_template('forms/new_venue.html')
+  
 
 @app.route('/venues/<int:venue_id>', methods=['DELETE'])
 def delete_venue(venue_id):
@@ -354,7 +359,7 @@ def artists():
   # TODO: replace with real data returned from querying the database
 
   # shows all artists in the database
-  data = Artist.query.order_by(Artist.id).join(Show).all()
+  data = Artist.query.order_by(Artist.name).all()
 
   # aborts if there are no artists in the database
   if len(data) == 0 or data is None:
@@ -529,6 +534,7 @@ def edit_artist_submission(artist_id):
   # sets each element from the form into an object
   #This method was obtained from the questions classroom section (setting an object of the variables equale to artist).
   try:
+    validate_phone(request.form['phone'])
     artist = {
       "name": request.form.get('name'),
       "city": request.form.get('city'),
@@ -568,6 +574,7 @@ def edit_venue(venue_id):
     city=venue.city,
     state=venue.state,
     facebook_link=venue.facebook_link,
+    address=venue.address,
     phone=venue.phone,
     genres=venue.genres,
     website=venue.website,
@@ -598,6 +605,7 @@ def edit_venue_submission(venue_id):
   
   # sets each element from the form into an object
   try:
+    validate_phone(request.form.get('phone'))
     venue = {
       "name": request.form.get('name'),
       "city": request.form.get('city'),
@@ -658,6 +666,7 @@ def create_artist_submission():
     seeking_venue= bool(request.form.get('seeking_venue'))
     facebook_link = request.form.get('facebook_link')
     seeking_description = request.form.get('seeking_description')
+    validate_phone(phone)
 
     # Maps the variables above to their corresponding objects in this instance
     artist = Artist(name=name, city=city, state=state, phone=phone, website=website, genres=genres, image_link=image_link, facebook_link=facebook_link, seeking_venue=seeking_venue, seeking_description=seeking_description)
